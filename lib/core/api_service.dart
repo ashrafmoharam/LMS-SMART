@@ -458,15 +458,65 @@ static Future<Map<String, dynamic>> uploadAssignment({
     }
   }
 
+ /// جلب نتائج جميع الطلاب لكويز معين
   static Future<List<dynamic>> getQuizResults(String quizId) async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/instructor/quiz_results.php?quiz_id=$quizId'));
-      return jsonDecode(response.body)['results'] ?? [];
+      final url = Uri.parse('$baseUrl/api/instructor/quiz_results.php?quiz_id=$quizId');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success') {
+          return data['results'] ?? [];
+        } else {
+          return [];
+        }
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('Error fetching quiz results: $e');
+      return [];
+    }
+  }
+
+  // =========================================
+  // جلب أسئلة الكويز
+  // =========================================
+  static Future<List<dynamic>> getQuizQuestions(String quizId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/student/quiz_questions.php?quiz_id=$quizId'));
+      final data = jsonDecode(response.body);
+      return data['questions'] ?? [];
     } catch (e) {
       return [];
     }
   }
 
+  // =========================================
+  // إرسال إجابات الكويز
+  // =========================================
+  static Future<bool> submitQuiz({
+    required String quizId,
+    required String studentId,
+    required Map<int, String> answers, // quiz_question_id -> selected_option
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/student/submit_quiz.php'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "quiz_id": quizId,
+          "student_id": studentId,
+          "answers": answers,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      return data['status'] == 'success';
+    } catch (e) {
+      return false;
+    }
+  }
   // =====================================================
   // Course Students
   // =====================================================

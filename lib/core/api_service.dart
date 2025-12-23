@@ -426,7 +426,7 @@ static Future<Map<String, dynamic>> uploadAssignment({
   // =====================================================
   // Quizzes
   // =====================================================
-  static Future<Map<String, dynamic>> createQuiz({
+    static Future<Map<String, dynamic>> createQuiz({
     required String courseId,
     required String title,
     required int totalMarks,
@@ -435,20 +435,26 @@ static Future<Map<String, dynamic>> uploadAssignment({
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/instructor/create_quiz.php'),
-        headers: {"Content-Type": "application/json"},
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "course_id": courseId,
-          "title": title,
-          "total_marks": totalMarks,
-          "questions": questions,
+          'course_id': courseId,
+          'title': title,
+          'total_marks': totalMarks,
+          'questions': questions,
         }),
       );
-      return jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {'status': 'error', 'message': 'Server error'};
+      }
     } catch (e) {
-      return {"status": "error", "message": "Failed to connect to server"};
+      return {'status': 'error', 'message': e.toString()};
     }
   }
 
+  
   static Future<List<dynamic>> getCourseQuizzes(String courseId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/api/instructor/course_quizzes.php?course_id=$courseId'));

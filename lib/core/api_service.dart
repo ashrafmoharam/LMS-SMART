@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, non_constant_identifier_names
 
 import 'dart:io';
 import 'dart:convert';
@@ -317,6 +317,40 @@ static Future<Map<String, dynamic>> uploadAssignment({
   }
 }
 
+  static Future<bool> AssignmentSubmissions({
+    required String courseId,
+    required String assignmentId,
+    required String studentId,
+    required dynamic file,
+    required String fileName,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/student/assignment_submissions.php'),
+      );
+      request.fields['course_id'] = courseId;
+      request.fields['assignment_id'] = assignmentId;
+      request.fields['student_id'] = studentId;
+
+      if (kIsWeb) {
+        request.files.add(http.MultipartFile.fromBytes('file', file, filename: fileName));
+      } else {
+        request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      }
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var resStr = await response.stream.bytesToString();
+        return resStr.contains('"status":"success"');
+      } else {
+        return false;
+      }
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
 
  static Future<List<dynamic>> getAssignmentSubmissions(String assignmentId) async {
   try {

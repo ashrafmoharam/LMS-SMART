@@ -28,7 +28,6 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
     setState(() => loading = false);
   }
 
-  // فتح ملف PDF باستخدام الرابط
   Future<void> viewCV(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
@@ -40,6 +39,26 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
   }
 
   Future<void> handleRequest(String id, bool approve) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(approve ? 'Approve Request?' : 'Reject Request?'),
+        content: const Text('Are you sure you want to perform this action?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     if (submitting) return;
     setState(() => submitting = true);
 
@@ -48,6 +67,7 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
         : await ApiService.rejectInstructor(id);
 
     setState(() => submitting = false);
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result['message'] ?? (approve ? 'Approved' : 'Rejected')),
@@ -56,7 +76,6 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
       ),
     );
 
-    // إعادة تحميل الطلبات بعد الإجراء
     await loadRequests();
   }
 
@@ -79,13 +98,22 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
                     return Card(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        title: Text(r['full_name'] ?? 'Unknown'),
-                        subtitle: Column(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(r['personal_email'] ?? ''),
+                            Text(
+                              r['full_name'] ?? 'Unknown',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
                             const SizedBox(height: 4),
+                            Text('Email: ${r['personal_email'] ?? ''}'),
+                            Text('Phone: ${r['phone'] ?? ''}'),
+                            Text('Status: ${r['status'] ?? ''}'),
+                            Text('Created At: ${r['created_at'] ?? ''}'),
+                            const SizedBox(height: 6),
                             cvFile.isNotEmpty
                                 ? GestureDetector(
                                     onTap: () => viewCV(cvUrl),
@@ -98,18 +126,22 @@ class _InstructorRequestsPageState extends State<InstructorRequestsPage> {
                                     ),
                                   )
                                 : const Text('No CV uploaded'),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
-                              onPressed: () => handleRequest(r['id'], true),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              onPressed: () => handleRequest(r['id'], false),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.check,
+                                      color: Colors.green),
+                                  onPressed: () =>
+                                      handleRequest(r['id'], true),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () =>
+                                      handleRequest(r['id'], false),
+                                ),
+                              ],
                             ),
                           ],
                         ),

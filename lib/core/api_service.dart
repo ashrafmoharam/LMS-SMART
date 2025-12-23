@@ -576,33 +576,66 @@ static Future<List<dynamic>> getQuizQuestions(String quizId) async {
   // =====================================================
   // ADMIN FUNCTIONS
   // =====================================================
+    /// =========================
+  /// جلب طلبات المعلمين pending
+  /// =========================
   static Future<List<dynamic>> getInstructorRequests() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/admin/instructor_requests.php'));
-      return jsonDecode(response.body)['requests'] ?? [];
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/admin/instructor_requests.php'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success') {
+          return data['requests'] ?? [];
+        }
+      }
+      return [];
     } catch (e) {
       return [];
     }
   }
 
-  static Future<Map<String, dynamic>> approveInstructor(String requestId) async {
+  /// =========================
+  /// الموافقة على طلب معلم
+  /// =========================
+  static Future<Map<String, dynamic>> approveInstructor(String id) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/api/admin/approve_instructor.php'), body: {"request_id": requestId});
-      return jsonDecode(response.body);
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/admin/approve_instructor.php'),
+        body: {'id': id},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {'status': 'error', 'message': 'Server error'};
+      }
     } catch (e) {
-      return {"status": "error"};
+      return {'status': 'error', 'message': e.toString()};
     }
   }
 
-  static Future<Map<String, dynamic>> rejectInstructor(String requestId) async {
+  /// =========================
+  /// رفض طلب معلم
+  /// =========================
+  static Future<Map<String, dynamic>> rejectInstructor(String id) async {
     try {
-      final response = await http.post(Uri.parse('$baseUrl/api/admin/reject_instructor.php'), body: {"request_id": requestId});
-      return jsonDecode(response.body);
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/admin/reject_instructor.php'),
+        body: {'id': id},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {'status': 'error', 'message': 'Server error'};
+      }
     } catch (e) {
-      return {"status": "error"};
+      return {'status': 'error', 'message': e.toString()};
     }
   }
-
   static Future<Map<String, dynamic>> addCourse(String title, String description) async {
     try {
       final response = await http.post(Uri.parse('$baseUrl/api/admin/add_course.php'), body: {"title": title, "description": description});

@@ -189,7 +189,7 @@ class _LoginState extends State<Login> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const InstructorCVPage(),
+                          builder: (_) => const InstructorCVPage(instructorId: '',),
                         ),
                       );
                     },

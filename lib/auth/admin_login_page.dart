@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:smartlearn_lms/auth/RegisterAdmin.dart';
 import '../core/api_service.dart';
 import '../admin/admin_page.dart';
 
@@ -99,17 +98,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                         child: const Text('Login as Admin'),
                       ),
                     ),
-                    TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterAdminPage(),
-                        ),
-                      );
-                    },
-                    child: const Text('Register Admin'),
-                  ),
+                    
             ],
           ),
         ),

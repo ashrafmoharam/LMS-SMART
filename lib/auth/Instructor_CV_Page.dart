@@ -1,184 +1,120 @@
-// ignore_for_file: file_names
+// ignore_for_file: file_names, use_build_context_synchronously
 
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../core/api_service.dart'; // عدل المسار حسب مكان ملف ApiService.dart
+import '../../../../core/api_service.dart';
+import 'dart:io';
 
 class InstructorCVPage extends StatefulWidget {
-  const InstructorCVPage({super.key});
+  final String instructorId;
+  const InstructorCVPage({super.key, required this.instructorId});
 
   @override
   State<InstructorCVPage> createState() => _InstructorCVPageState();
 }
 
 class _InstructorCVPageState extends State<InstructorCVPage> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _fieldController = TextEditingController();
-
-  File? _cvFile;
+  File? selectedFile;           // للموبايل
+  Uint8List? selectedFileBytes; // للويب
+  String? selectedFileName;     // للويب
   bool isLoading = false;
 
-  // اختيار الملف
-  Future<void> pickCV() async {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+
+  void pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx'],
+      allowedExtensions: ['pdf'],
+      withData: kIsWeb, // مهم للويب للحصول على bytes
     );
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _cvFile = File(result.files.single.path!);
-      });
+
+    if (result != null) {
+      if (kIsWeb) {
+        selectedFileBytes = result.files.single.bytes;
+        selectedFileName = result.files.single.name;
+      } else {
+        final path = result.files.single.path;
+        if (path != null) selectedFile = File(path);
+      }
+      setState(() {});
     }
   }
 
-  // ارسال الطلب باستخدام ApiService
-  Future<void> submitRequest() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_cvFile == null) {
+  void uploadCV() async {
+    if (nameController.text.isEmpty || emailController.text.isEmpty || phoneController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload your CV')),
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    if (selectedFile == null && selectedFileBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a CV file')),
       );
       return;
     }
 
     setState(() => isLoading = true);
 
-    var result = await ApiService.submitInstructorRequest(
-      fullName: _nameController.text,
-      phone: _phoneController.text,
-      personalEmail: _emailController.text,
-      field: _fieldController.text,
-      cvFile: _cvFile!,
+    final result = await ApiService.uploadInstructorCV(
+      instructorId: widget.instructorId,
+      fileBytes: selectedFileBytes ?? Uint8List(0), // ملف مختار
+      fileName: selectedFileName ?? selectedFile!.path.split('/').last, // اسم الملف
+      fullName: nameController.text,
+      personalEmail: emailController.text,
+      phone: phoneController.text,
     );
 
     setState(() => isLoading = false);
 
-    if (result['status'] == 'success') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Request submitted successfully!')),
-      );
-      _formKey.currentState!.reset();
-      setState(() {
-        _cvFile = null;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Submission failed')),
-      );
-    }
-  }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result['message'] ?? 'Done')),
+    );
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _fieldController.dispose();
-    super.dispose();
+    if (result['status'] == 'success') Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Instructor CV Submission'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-      ),
-      backgroundColor: const Color(0xFFF2F4F7),
-      body: Center(
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12)],
-          ),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                const Text(
-                  'Submit Your CV',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your full name' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your phone number' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Personal Email',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your email' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _fieldController,
-                  decoration: const InputDecoration(
-                    labelText: 'Field',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) =>
-                      value!.isEmpty ? 'Please enter your field' : null,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: pickCV,
-                  icon: const Icon(Icons.upload_file),
-                  label: Text(_cvFile == null ? 'Upload CV' : 'Change CV'),
-                ),
-                if (_cvFile != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child:
-                        Text('Selected file: ${_cvFile!.path.split('/').last}'),
-                  ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : submitRequest,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Submit Request', style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-              ],
-            ),
+      appBar: AppBar(title: const Text('Upload Instructor CV')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Full Name'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Personal Email'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Phone'),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(onPressed: pickFile, child: const Text('Select PDF CV')),
+              const SizedBox(height: 16),
+              if (kIsWeb && selectedFileName != null) Text('Selected: $selectedFileName'),
+              if (!kIsWeb && selectedFile != null) Text('Selected: ${selectedFile!.path.split('/').last}'),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: isLoading ? null : uploadCV,
+                child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('Upload CV'),
+              ),
+            ],
           ),
         ),
       ),

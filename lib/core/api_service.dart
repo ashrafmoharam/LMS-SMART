@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -43,27 +44,7 @@ class ApiService {
       return {"status": "error", "message": "Failed to connect to server"};
     }
   }
-  static Future<Map<String, dynamic>> registerAdmin({
-  required String fullName,
-  required String personalEmail,
-  required String universityEmail,
-  required String password,
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/auth/register_admin.php'),
-      body: {
-        'full_name': fullName,
-        'personal_email': personalEmail,
-        'university_email': universityEmail,
-        'password': password,
-      },
-    );
-    return jsonDecode(response.body);
-  } catch (e) {
-    return {"status": "error", "message": "Failed to connect to server"};
-  }
-}
+  
 
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
@@ -115,29 +96,40 @@ static Future<Map<String, dynamic>> updatePassword({
   // =====================================================
   // INSTRUCTOR REQUEST (UPLOAD CV)
   // =====================================================
-  static Future<Map<String, dynamic>> submitInstructorRequest({
+    // ================== رفع CV للمعلم مع بياناته ==================
+  static Future<Map<String, dynamic>> uploadInstructorCV({
+    required String instructorId,
+    required Uint8List fileBytes,
+    required String fileName,
     required String fullName,
-    required String phone,
     required String personalEmail,
-    required String field,
-    required File cvFile,
+    required String phone,
   }) async {
     try {
-      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/instructor/instructor_request.php'));
-      request.fields['full_name'] = fullName;
-      request.fields['phone'] = phone;
-      request.fields['personal_email'] = personalEmail;
-      request.fields['field'] = field;
-      request.files.add(await http.MultipartFile.fromPath('cv', cvFile.path));
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/api/instructor/instructor_request.php'),
+      );
 
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
-      return jsonDecode(responseBody);
+      // بيانات المعلم
+      request.fields['instructor_id'] = instructorId;
+      request.fields['full_name'] = fullName;
+      request.fields['personal_email'] = personalEmail;
+      request.fields['phone'] = phone;
+
+      // إضافة ملف CV
+      request.files.add(
+        http.MultipartFile.fromBytes('cv_file', fileBytes, filename: fileName),
+      );
+
+      var response = await request.send();
+      var respStr = await response.stream.bytesToString();
+
+      return jsonDecode(respStr);
     } catch (e) {
       return {"status": "error", "message": e.toString()};
     }
   }
-
   // =====================================================
   // STUDENT
   // =====================================================
@@ -216,10 +208,10 @@ static Future<List<dynamic>> getInstructorCourses(String instructorId) async {
 
 
 
-static Future<List<dynamic>> getInstructorNews(String instructorId) async {
+static Future<List<dynamic>> getInstructorNews(String adminId) async {
   try {
     final response = await http.get(
-      Uri.parse('$baseUrl/api/instructor/instructor_news.php?instructor_id=$instructorId'),
+      Uri.parse('$baseUrl/api/instructor/instructor_news.php?admin_id=$adminId'),
     );
 
     final data = jsonDecode(response.body);
@@ -232,7 +224,7 @@ static Future<List<dynamic>> getInstructorNews(String instructorId) async {
 static Future<Map<String, dynamic>> addInstructorNews(
   String title,
   String content,
-  String instructorId,
+  String admins_id
 ) async {
   try {
     final response = await http.post(
@@ -240,7 +232,7 @@ static Future<Map<String, dynamic>> addInstructorNews(
       body: {
         "title": title,
         "content": content,
-        "instructor_id": instructorId,
+        "admins_id": admins_id,
       },
     );
 
@@ -488,41 +480,80 @@ static Future<Map<String, dynamic>> uploadAssignment({
   // =========================================
   // جلب أسئلة الكويز
   // =========================================
-  static Future<List<dynamic>> getQuizQuestions(String quizId) async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/api/student/quiz_questions.php?quiz_id=$quizId'));
-      final data = jsonDecode(response.body);
-      return data['questions'] ?? [];
-    } catch (e) {
+static Future<List<dynamic>> getQuizQuestions(String quizId) async {
+  try {
+    final uri = Uri.parse(
+      '$baseUrl/api/student/quiz_questions.php?quiz_id=$quizId',
+    );
+
+    final response = await http
+        .get(uri)
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode != 200) {
       return [];
     }
+
+    final data = jsonDecode(response.body);
+
+    if (data['status'] != 'success') {
+      return [];
+    }
+
+    if (data['questions'] is List) {
+      return data['questions'];
+    }
+
+    return [];
+  } catch (e) {
+    debugPrint('getQuizQuestions error: $e');
+    return [];
   }
+}
+
 
   // =========================================
   // إرسال إجابات الكويز
   // =========================================
-  static Future<bool> submitQuiz({
-    required String quizId,
-    required String studentId,
-    required Map<int, String> answers, // quiz_question_id -> selected_option
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/student/submit_quiz.php'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "quiz_id": quizId,
-          "student_id": studentId,
-          "answers": answers,
-        }),
-      );
+ static Future<bool> submitQuiz({
+  required String quizId,
+  required String studentId,
+  required Map<int, String> answers, // question_id -> A/B/C/D
+}) async {
+  try {
+    final uri = Uri.parse('$baseUrl/api/student/submit_quiz.php');
 
-      final data = jsonDecode(response.body);
-      return data['status'] == 'success';
-    } catch (e) {
+    final response = await http
+        .post(
+          uri,
+          headers: const {
+            "Content-Type": "application/json",
+          },
+          body: jsonEncode({
+            "quiz_id": quizId,
+            "student_id": studentId,
+            // تحويل المفاتيح إلى String
+            "answers": answers.map(
+              (key, value) => MapEntry(key.toString(), value),
+            ),
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode != 200) {
       return false;
     }
+
+    final data = jsonDecode(response.body);
+
+    return data is Map && data['status'] == 'success';
+  } catch (e) {
+    debugPrint('submitQuiz error: $e');
+    return false;
   }
+}
+
+
   // =====================================================
   // Course Students
   // =====================================================

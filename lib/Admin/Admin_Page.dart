@@ -1,10 +1,10 @@
 // ignore_for_file: file_names
 import 'package:flutter/material.dart';
 import '../auth/update_password.dart';
+import '../instructor/add_news_page.dart';
 import 'Instructor_Requests_Page.dart';
 import 'courses_management_page.dart';
 import 'assign_instructor_page.dart';
-import 'add_student_to_course_page.dart';
 import '../auth/login.dart';
 // فقط استدعاء الملف
 
@@ -35,7 +35,7 @@ class _AdminPageState extends State<AdminPage> {
       const InstructorRequestsPage(),
       const CoursesManagementPage(),
       const AssignInstructorPage(),
-      const AddStudentToCoursePage(),
+      const AddNewsPage(instructorId: '',),
     ];
   }
 
@@ -107,10 +107,7 @@ class _AdminPageState extends State<AdminPage> {
             icon: Icon(Icons.school),
             label: 'Assign',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.group),
-            label: 'Students',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'Add News'),
         ],
       ),
     );

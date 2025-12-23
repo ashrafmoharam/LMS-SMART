@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../Admin/add_student_to_course_page.dart';
 import 'CoursesPage/courses_page.dart';
-import 'add_news_page.dart';
 import '../auth/login.dart';
 import '../auth/update_password.dart';
+
 
 class InstructorPage extends StatefulWidget {
   final String instructorId;
@@ -24,8 +25,9 @@ class _InstructorPageState extends State<InstructorPage> {
     super.initState();
     pages = [
       CoursesPage(instructorId: widget.instructorId),
-      AddNewsPage(instructorId: widget.instructorId),
+      const AddStudentToCoursePage(),
     ];
+
   }
 
   void handleLogout() {
@@ -68,7 +70,10 @@ class _InstructorPageState extends State<InstructorPage> {
         onTap: (index) => setState(() => selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Courses'),
-          BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'Add News'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group),
+            label: 'Students',
+          ),
         ],
       ),
     );

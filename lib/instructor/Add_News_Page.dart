@@ -68,7 +68,7 @@ class _AddNewsPageState extends State<AddNewsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Instructor News'),
+        title: const Text('Admin News'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

@@ -6,7 +6,11 @@ class QuizPage extends StatefulWidget {
   final String quizId;
   final String studentId;
 
-  const QuizPage({super.key, required this.quizId, required this.studentId});
+  const QuizPage({
+    super.key,
+    required this.quizId,
+    required this.studentId,
+  });
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -14,7 +18,7 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   List<dynamic> questions = [];
-  Map<int, String> selectedAnswers = {}; // quiz_question_id -> selected_option
+  Map<int, String> selectedAnswers = {}; // question_id -> A/B/C/D
   bool isLoading = true;
   bool isSubmitting = false;
 
@@ -24,10 +28,21 @@ class _QuizPageState extends State<QuizPage> {
     fetchQuestions();
   }
 
-  void fetchQuestions() async {
+  Future<void> fetchQuestions() async {
+    if (!mounted) return;
+
     setState(() => isLoading = true);
-    questions = await ApiService.getQuizQuestions(widget.quizId);
-    setState(() => isLoading = false);
+
+    try {
+      final result = await ApiService.getQuizQuestions(widget.quizId);
+      if (!mounted) return;
+
+      setState(() => questions = result);
+    } catch (e) {
+      debugPrint('fetchQuestions error: $e');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   void submitQuiz() async {
@@ -46,10 +61,16 @@ class _QuizPageState extends State<QuizPage> {
       answers: selectedAnswers,
     );
 
+    if (!mounted) return;
+
     setState(() => isSubmitting = false);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(success ? 'Quiz submitted successfully' : 'Submission failed')),
+      SnackBar(
+        content: Text(
+          success ? 'Quiz submitted successfully' : 'Submission failed',
+        ),
+      ),
     );
 
     if (success) Navigator.pop(context);
@@ -57,8 +78,17 @@ class _QuizPageState extends State<QuizPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) return const Center(child: CircularProgressIndicator());
-    if (questions.isEmpty) return const Center(child: Text('No questions available'));
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (questions.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('No questions available')),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Quiz')),
@@ -66,8 +96,8 @@ class _QuizPageState extends State<QuizPage> {
         itemCount: questions.length,
         itemBuilder: (context, index) {
           final q = questions[index];
-          final qId = q['id'];
-          final options = q['options'] as List<dynamic>;
+          final int qId = int.parse(q['id'].toString());
+          final Map<String, dynamic> options = q['options'];
 
           return Card(
             margin: const EdgeInsets.all(8),
@@ -76,19 +106,30 @@ class _QuizPageState extends State<QuizPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Q${index + 1}: ${q['question']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ...options.map((opt) {
-                    final optStr = opt.toString();
+                  Text(
+                    'Q${index + 1}: ${q['question_text']}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  ...options.entries.map((entry) {
+                    final optionKey = entry.key; // A / B / C / D
+                    final optionValue = entry.value.toString();
+
                     return RadioListTile<String>(
-                      title: Text(optStr),
-                      value: optStr,
+                      title: Text(optionValue),
+                      value: optionKey,
                       groupValue: selectedAnswers[qId],
                       onChanged: (val) {
-                        setState(() => selectedAnswers[qId] = val!);
+                        setState(() {
+                          selectedAnswers[qId] = val!;
+                        });
                       },
                     );
-                  // ignore: unnecessary_to_list_in_spreads
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

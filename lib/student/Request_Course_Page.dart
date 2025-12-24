@@ -131,8 +131,8 @@ class _RequestCoursePageState extends State<RequestCoursePage> {
                       items: coursesList
                           .map((course) => DropdownMenuItem(
                                 value: course["id"],
-                                child: Text(course["title"]!),
                                 enabled: !sentCourses.contains(course["id"]),
+                                child: Text(course["title"]!),
                               ))
                           .toList(),
                       onChanged: (value) {

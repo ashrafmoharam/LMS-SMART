@@ -11,12 +11,19 @@ class ApiService {
   // =====================================================
   // Base URL
   // =====================================================
-  static String get baseUrl {
-    if (kIsWeb) return "http://192.168.1.3/SmartLearn_LMS";
-    if (Platform.isAndroid) return "http://10.0.2.2/SmartLearn_LMS";
-    if (Platform.isIOS) return "http://localhost/SmartLearn_LMS";
+static String get baseUrl {
+  if (kIsWeb) {
     return "http://localhost/SmartLearn_LMS";
   }
+  if (Platform.isAndroid) {
+    return "http://10.0.2.2/SmartLearn_LMS";
+  }
+  if (Platform.isIOS) {
+    return "http://localhost/SmartLearn_LMS";
+  }
+  return "http://localhost/SmartLearn_LMS";
+}
+
 
   // =====================================================
   // AUTH
@@ -143,17 +150,20 @@ static Future<Map<String, dynamic>> updatePassword({
   }
 
 
- static Future<List<dynamic>> getStudentQuizGrades(String studentId) async {
+ /// جلب درجات الطالب لكل الاختبارات
+  static Future<List<dynamic>> getStudentQuizGrades(String studentId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/api/student/student_grades.php?student_id=$studentId'),
+        Uri.parse('$baseUrl/api/student/quiz_grades.php?student_id=$studentId'),
       );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['grades'] ?? [];
-      } else {
-        return [];
+        if (data['status'] == 'success') {
+          return data['grades'] ?? [];
+        }
       }
+      return [];
     } catch (e) {
       return [];
     }

@@ -699,4 +699,30 @@ static Future<List<dynamic>> getQuizQuestions(String quizId) async {
       return [];
     }
   }
+  ///_____________________________________________________________
+  // طلب تسجيل مادة
+  static Future<Map<String, dynamic>> requestCourse({
+    required String studentId,
+    required String courseId,
+    required String studentEmail,
+  }) async {
+    try {
+      print("Sending studentId=$studentId, courseId=$courseId, email=$studentEmail"); // Debug
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/student/request_course.php"),
+        body: {
+          "student_id": studentId,
+          "course_id": courseId,
+          "student_email": studentEmail, // البريد الجامعي
+        },
+      );
+      print("Response: ${response.body}"); // Debug
+      return json.decode(response.body);
+    } catch (e) {
+      return {"status": "error", "message": e.toString()};
+    }
+  }
+
+
+
 }

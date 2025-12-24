@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smartlearn_lms/student/CoursesPage/courses_page.dart';
+import 'package:smartlearn_lms/student/Request_Course_Page.dart';
 import 'news_page.dart';
 import 'grades_page.dart';
 import '../auth/login.dart';
@@ -18,7 +19,12 @@ class _StudentPageState extends State<StudentPage> {
   int selectedIndex = 0;
 
   late final List<Widget> pages;
-  final List<String> titles = ['Courses', 'News', 'Grades'];
+  final List<String> titles = [
+    'Courses',
+    'News',
+    'Grades',
+    'Request Course', // 🆕
+  ];
 
   @override
   void initState() {
@@ -27,6 +33,7 @@ class _StudentPageState extends State<StudentPage> {
       CoursesPage(studentId: widget.studentId),
       NewsPage(studentId: widget.studentId),
       GradesPage(studentId: widget.studentId),
+      const RequestCoursePage(), // 🆕
     ];
   }
 
@@ -41,8 +48,8 @@ class _StudentPageState extends State<StudentPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-       builder: (_) => const UpdatePasswordPage(),
-  ),
+        builder: (_) => const UpdatePasswordPage(),
+      ),
     );
   }
 
@@ -57,23 +64,33 @@ class _StudentPageState extends State<StudentPage> {
               if (value == 'logout') handleLogout();
               if (value == 'change_password') handleChangePassword();
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'change_password', child: Text('Change Password')),
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                  value: 'change_password',
+                  child: Text('Change Password')),
+              PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
           ),
         ],
       ),
       body: pages[selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) => setState(() => selectedIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Courses'),
-          BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'News'),
-          BottomNavigationBarItem(icon: Icon(Icons.grade), label: 'Grades'),
-        ],
-      ),
+     bottomNavigationBar: BottomNavigationBar(
+  currentIndex: selectedIndex,
+  onTap: (index) => setState(() => selectedIndex = index),
+  selectedItemColor: Colors.black,      // 🖤 اللون عند التحديد
+  unselectedItemColor: Colors.black54,  // 🖤 اللون عند عدم التحديد
+  items: const [
+    BottomNavigationBarItem(
+        icon: Icon(Icons.book), label: 'Courses'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.newspaper), label: 'News'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.grade), label: 'Grades'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.request_page), label: 'Request'),
+  ],
+),
+
     );
   }
 }

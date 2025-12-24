@@ -33,7 +33,7 @@ class _StudentPageState extends State<StudentPage> {
       CoursesPage(studentId: widget.studentId),
       NewsPage(studentId: widget.studentId),
       GradesPage(studentId: widget.studentId),
-      const RequestCoursePage(), // 🆕
+      const RequestCoursePage(studentId: '',), // 🆕
     ];
   }
 
